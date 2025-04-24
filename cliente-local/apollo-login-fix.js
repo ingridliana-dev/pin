@@ -26,148 +26,228 @@ async function handleApolloLogin(page, log, LOG_DIR) {
     if (isApolloLogin) {
       log("Tela de login do Apollo detectada. Preenchendo credenciais...");
 
+      // ===== NOVA IMPLEMENTAÇÃO RECOMENDADA =====
+
+      // 1. Aguardar um tempo para garantir que a página carregou completamente
+      log("Aguardando carregamento completo da página...");
+      await page.waitForTimeout(3000);
+
+      // 2. Verificar e registrar todos os campos de entrada disponíveis para depuração
+      const inputFields = await page.evaluate(() => {
+        const inputs = Array.from(document.querySelectorAll("input"));
+        return inputs.map((input) => ({
+          type: input.type,
+          id: input.id,
+          name: input.name,
+          placeholder: input.placeholder,
+          className: input.className,
+        }));
+      });
+
+      log(`Campos de entrada encontrados: ${JSON.stringify(inputFields)}`);
+
+      // 3. Esperar explicitamente pelo campo de username
+      log("Esperando pelo campo de username...");
       try {
-        // Abordagem direta para preencher os campos usando os IDs específicos
-        await page.evaluate(() => {
-          // Preencher o campo Username com 'admin' usando o ID específico
-          const usernameInput = document.getElementById("usernameInput");
-          if (usernameInput) {
-            usernameInput.value = "admin";
-            usernameInput.dispatchEvent(new Event("input", { bubbles: true }));
-            usernameInput.dispatchEvent(new Event("change", { bubbles: true }));
-            console.log(
-              "Campo Username (usernameInput) preenchido com 'admin'"
-            );
-          } else {
-            console.log(
-              "Campo usernameInput não encontrado, tentando alternativas"
-            );
-            // Fallback para o primeiro input se o ID não for encontrado
-            const inputs = document.querySelectorAll('input[type="text"]');
-            if (inputs.length > 0) {
-              inputs[0].value = "admin";
-              inputs[0].dispatchEvent(new Event("input", { bubbles: true }));
-              inputs[0].dispatchEvent(new Event("change", { bubbles: true }));
-              console.log("Campo Username alternativo preenchido com 'admin'");
-            }
-          }
+        // Tentar esperar pelo ID específico primeiro
+        await page
+          .waitForSelector("#usernameInput", { timeout: 5000 })
+          .then(() => log("Campo #usernameInput encontrado"))
+          .catch(() =>
+            log("Campo #usernameInput não encontrado, tentando alternativas")
+          );
+      } catch (err) {
+        log(`Erro ao esperar pelo campo de username: ${err.message}`, "WARN");
+      }
 
-          // Preencher o campo Password com 'admin' usando o ID específico
-          const passwordInput = document.getElementById("passwordInput");
-          if (passwordInput) {
-            passwordInput.value = "admin";
-            passwordInput.dispatchEvent(new Event("input", { bubbles: true }));
-            passwordInput.dispatchEvent(new Event("change", { bubbles: true }));
-            console.log(
-              "Campo Password (passwordInput) preenchido com 'admin'"
-            );
-          } else {
-            console.log(
-              "Campo passwordInput não encontrado, tentando alternativas"
-            );
-            // Fallback para o primeiro input password se o ID não for encontrado
-            const inputs = document.querySelectorAll('input[type="password"]');
-            if (inputs.length > 0) {
-              inputs[0].value = "admin";
-              inputs[0].dispatchEvent(new Event("input", { bubbles: true }));
-              inputs[0].dispatchEvent(new Event("change", { bubbles: true }));
-              console.log("Campo Password alternativo preenchido com 'admin'");
-            }
-          }
+      // 4. Preencher o campo de username
+      log("Preenchendo campo de username com 'admin'...");
+      try {
+        // Tentar com ID específico primeiro
+        const usernameExists = await page.$("#usernameInput");
+        if (usernameExists) {
+          // Limpar o campo primeiro
+          await page.evaluate(() => {
+            document.getElementById("usernameInput").value = "";
+          });
 
-          // Encontrar e clicar no botão de login
-          const buttons = document.querySelectorAll("button");
-          for (let i = 0; i < buttons.length; i++) {
-            if (buttons[i].textContent.includes("Login")) {
-              console.log("Botão Login encontrado, clicando...");
-              buttons[i].click();
-              return true;
-            }
-          }
-
-          // Se não encontrar um botão específico, clicar no primeiro botão
-          if (buttons.length > 0) {
-            console.log("Clicando no primeiro botão disponível...");
-            buttons[0].click();
-            return true;
-          }
-
-          return false;
-        });
-
-        log("Credenciais preenchidas e botão clicado via JavaScript direto");
-      } catch (error) {
-        log(`Erro ao preencher via JavaScript: ${error.message}`, "WARN");
-
-        // Abordagem alternativa usando Puppeteer diretamente
-        try {
-          log("Tentando abordagem alternativa com Puppeteer...");
-
-          // Preencher Username usando o ID específico
-          log("Preenchendo Username com 'admin'");
-          await page.waitForTimeout(1000);
-
-          // Tentar usar o ID específico primeiro
-          try {
-            await page.focus("#usernameInput");
-            await page.keyboard.type("admin");
-            log("Campo Username preenchido usando #usernameInput");
-          } catch (err) {
-            log(
-              "Não foi possível usar #usernameInput, tentando alternativa",
-              "WARN"
-            );
-            await page.focus('input[type="text"]');
-            await page.keyboard.type("admin");
-          }
-
-          // Preencher Password usando o ID específico
-          log("Preenchendo Password com 'admin'");
-          await page.waitForTimeout(1000);
-
-          // Tentar usar o ID específico primeiro
-          try {
-            await page.focus("#passwordInput");
-            await page.keyboard.type("admin");
-            log("Campo Password preenchido usando #passwordInput");
-          } catch (err) {
-            log(
-              "Não foi possível usar #passwordInput, tentando alternativa",
-              "WARN"
-            );
-            await page.focus('input[type="password"]');
-            await page.keyboard.type("admin");
-          }
-
-          // Clicar no botão Login
-          log("Clicando no botão Login");
-          await page.waitForTimeout(1000);
-
-          // Tentar diferentes seletores para o botão
-          const loginButtonSelectors = [
-            "button.btn-primary",
-            "button.login-btn",
-            'button:contains("Login")',
-            "button",
+          // Preencher o campo com type
+          await page.type("#usernameInput", "admin", { delay: 100 });
+          log("Campo username preenchido com sucesso usando #usernameInput");
+        } else {
+          // Tentar com seletores alternativos
+          log("Tentando seletores alternativos para username...");
+          const alternativeSelectors = [
+            'input[type="text"]',
+            'input[placeholder*="Username" i]',
+            'input[placeholder*="User" i]',
+            'input:not([type="password"])',
           ];
 
-          for (const selector of loginButtonSelectors) {
-            try {
-              await page.click(selector);
-              log(`Clicado com sucesso usando seletor: ${selector}`);
+          for (const selector of alternativeSelectors) {
+            const exists = await page.$(selector);
+            if (exists) {
+              await page.type(selector, "admin", { delay: 100 });
+              log(`Campo username preenchido com sucesso usando ${selector}`);
               break;
-            } catch (err) {
-              log(
-                `Não foi possível clicar usando seletor: ${selector}`,
-                "DEBUG"
-              );
             }
           }
-        } catch (puppeteerError) {
-          log(
-            `Erro na abordagem com Puppeteer: ${puppeteerError.message}`,
-            "WARN"
+        }
+      } catch (err) {
+        log(`Erro ao preencher username: ${err.message}`, "WARN");
+      }
+
+      // 5. Aguardar um pouco antes de preencher a senha
+      await page.waitForTimeout(1000);
+
+      // 6. Esperar explicitamente pelo campo de password
+      log("Esperando pelo campo de password...");
+      try {
+        await page
+          .waitForSelector("#passwordInput", { timeout: 5000 })
+          .then(() => log("Campo #passwordInput encontrado"))
+          .catch(() =>
+            log("Campo #passwordInput não encontrado, tentando alternativas")
           );
+      } catch (err) {
+        log(`Erro ao esperar pelo campo de password: ${err.message}`, "WARN");
+      }
+
+      // 7. Preencher o campo de password
+      log("Preenchendo campo de password com 'admin'...");
+      try {
+        // Tentar com ID específico primeiro
+        const passwordExists = await page.$("#passwordInput");
+        if (passwordExists) {
+          // Limpar o campo primeiro
+          await page.evaluate(() => {
+            document.getElementById("passwordInput").value = "";
+          });
+
+          // Preencher o campo com type
+          await page.type("#passwordInput", "admin", { delay: 100 });
+          log("Campo password preenchido com sucesso usando #passwordInput");
+        } else {
+          // Tentar com seletores alternativos
+          log("Tentando seletores alternativos para password...");
+          const alternativeSelectors = [
+            'input[type="password"]',
+            'input[placeholder*="Password" i]',
+            'input[placeholder*="Senha" i]',
+          ];
+
+          for (const selector of alternativeSelectors) {
+            const exists = await page.$(selector);
+            if (exists) {
+              await page.type(selector, "admin", { delay: 100 });
+              log(`Campo password preenchido com sucesso usando ${selector}`);
+              break;
+            }
+          }
+        }
+      } catch (err) {
+        log(`Erro ao preencher password: ${err.message}`, "WARN");
+      }
+
+      // 8. Aguardar um pouco antes de clicar no botão
+      await page.waitForTimeout(1000);
+
+      // 9. Esperar explicitamente pelo botão de login
+      log("Esperando pelo botão de login...");
+      try {
+        // Tentar diferentes seletores para o botão
+        const loginButtonSelectors = [
+          "button.btn-primary",
+          "button.login-button",
+          'button[type="submit"]',
+          "button",
+        ];
+
+        let buttonClicked = false;
+
+        for (const selector of loginButtonSelectors) {
+          try {
+            const buttonExists = await page.$(selector);
+            if (buttonExists) {
+              // Esperar que o botão esteja visível e clicável
+              await page.waitForSelector(selector, {
+                visible: true,
+                timeout: 2000,
+              });
+
+              // Clicar no botão
+              await page.click(selector);
+              log(`Botão de login clicado com sucesso usando ${selector}`);
+              buttonClicked = true;
+              break;
+            }
+          } catch (err) {
+            log(
+              `Não foi possível usar seletor de botão ${selector}: ${err.message}`,
+              "DEBUG"
+            );
+          }
+        }
+
+        // Se não conseguiu clicar em nenhum botão, tentar com JavaScript direto
+        if (!buttonClicked) {
+          log("Tentando clicar no botão via JavaScript direto...");
+
+          try {
+            buttonClicked = await page.evaluate(() => {
+              // Procurar por botões que contenham o texto "Login"
+              const buttons = Array.from(document.querySelectorAll("button"));
+              const loginButton = buttons.find(
+                (button) =>
+                  button.textContent.includes("Login") ||
+                  button.textContent.trim() === "Login"
+              );
+
+              if (loginButton) {
+                console.log("Botão de login encontrado via JS, clicando...");
+                loginButton.click();
+                return true;
+              }
+
+              // Se não encontrar um botão específico com texto "Login", pegar o primeiro botão
+              if (buttons.length > 0) {
+                console.log("Clicando no primeiro botão disponível via JS...");
+                buttons[0].click();
+                return true;
+              }
+
+              return false;
+            });
+
+            if (buttonClicked) {
+              log("Botão clicado com sucesso via JavaScript");
+            } else {
+              // Se ainda não conseguiu, tentar pressionar Enter
+              log(
+                "Não foi possível clicar no botão via JS, tentando pressionar Enter"
+              );
+              await page.keyboard.press("Enter");
+              log("Tecla Enter pressionada");
+            }
+          } catch (jsErr) {
+            log(
+              `Erro ao tentar clicar via JavaScript: ${jsErr.message}`,
+              "WARN"
+            );
+            // Tentar pressionar Enter como último recurso
+            await page.keyboard.press("Enter");
+            log("Tecla Enter pressionada como último recurso");
+          }
+        }
+      } catch (err) {
+        log(`Erro ao clicar no botão de login: ${err.message}`, "WARN");
+
+        // Última tentativa - pressionar Enter
+        try {
+          await page.keyboard.press("Enter");
+          log("Tecla Enter pressionada como última tentativa");
+        } catch (enterErr) {
+          log(`Erro ao pressionar Enter: ${enterErr.message}`, "ERROR");
         }
       }
 
