@@ -1,0 +1,3 @@
+@echo off
+echo Iniciando Cliente de Automacao de PIN...
+start "" "%~dp0pin-automacao-cliente.exe"

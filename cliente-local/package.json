@@ -1,0 +1,32 @@
+{
+  "name": "pin-automacao-cliente",
+  "version": "1.0.0",
+  "description": "Cliente local para automação de preenchimento de PIN",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "build": "node build.js"
+  },
+  "bin": "index.js",
+  "pkg": {
+    "assets": [
+      "node_modules/**/*",
+      ".env"
+    ],
+    "outputPath": "dist"
+  },
+  "keywords": [
+    "automation",
+    "pin",
+    "puppeteer"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "axios": "^1.8.4",
+    "dotenv": "^16.5.0",
+    "node-notifier": "^10.0.1",
+    "pkg": "^5.8.1",
+    "puppeteer": "^19.11.1"
+  }
+}
